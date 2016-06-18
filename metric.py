@@ -5,13 +5,21 @@
 import urllib2, simplejson
 from joblib import Parallel, delayed
 import multiprocessing
+import time
+from pymongo import MongoClient
 
-inputs = ['QTL', 'FRK', 'BTC', 'GAME', 'DGB', 'LTC'] # ['GLD', 'FRK', 'BTC', 'DGB', 'NLG', 'LTC']
+client = MongoClient()
+db = client.miner_io
+
+inputs = ['QTL', 'FRK', 'BTC', 'GAME', 'DGB', 'LTC']
 metrics = dict.fromkeys(inputs, 0)
-devhash = float(raw_input('Enter your device\'s hashrate in MH/sec: '))
+
+hashrates = {'QTL' : 100, 'FRK' : 100, 'BTC' : 100, 'GAME' : 100, 'DGB' : 100, 'LTC' : 100}
+exchange_rates = {}
+block_rewards = {}
+difficulties = {}
+
 apiCounters = {'QTL' : 0, 'FRK' : 5, 'BTC' : 10, 'GAME' : 15, 'DGB' : 20, 'LTC' : 25}
-
-
 apikeys = ['b87f63f1bf954b1095307e325626535e',
 'ffdf59fb30304bfa9e38ddc48e7c57e4',
 '5281ee161e4c4849a6ee81861f64f01b',
@@ -43,7 +51,6 @@ apikeys = ['b87f63f1bf954b1095307e325626535e',
 'd74003f52c6640edb488517448984c4d',
 '626b7beca79f4d198b000dea4d402bd2',
 '4bd560b12fca4e119684d41b3655c6ad']
-print('')
 
 def estimate(i):
 	if (apiCounters[i] % 5) == 0:
@@ -51,22 +58,49 @@ def estimate(i):
 
 	apikey = apikeys[apiCounters[i]]
 	apiCounters[i] += 1
+	devhash = hashrates[i]
 
-	rlambda = (simplejson.load(urllib2.urlopen('http://www.coinwarz.com/v1/api/coininformation/?apikey=' + apikey + '&cointag=' + i))).get('Data').get('BlockReward') # line 38
-	# diff = [(tlambda * nethash) / 4294.97] --> adjusted for MH/sec
-	diff = (simplejson.load(urllib2.urlopen('http://www.coinwarz.com/v1/api/coininformation/?apikey=' + apikey + '&cointag=' + i))).get('Data').get('Difficulty') # line 39
+	print 'Calculating expected daily profit (in USD) for... ' + i
+	rlambda = (simplejson.load(urllib2.urlopen('http://www.coinwarz.com/v1/api/coininformation/?apikey=' + apikey + '&cointag=' + i))).get('Data').get('BlockReward')
+	diff = (simplejson.load(urllib2.urlopen('http://www.coinwarz.com/v1/api/coininformation/?apikey=' + apikey + '&cointag=' + i))).get('Data').get('Difficulty')
 	exrate = float((simplejson.load(urllib2.urlopen('http://www.cryptonator.com/api/ticker/' + i + '-usd'))).get('ticker').get('price'))
-	print('Calculating expected daily profit (in USD) for... ' + i)
 	expcoin = round((86400*(devhash/(4294.97*diff))*(exrate*rlambda)), 2)
+	difficulties[i] = diff
+	exchange_rates[i] = exrate
+	block_rewards[i] = rlambda
 	return expcoin
 
-outputs = Parallel(n_jobs=multiprocessing.cpu_count())(delayed(estimate)(i) for i in inputs)
+def commitData(i):
+	result = db[i].insert_one(
+		{
+			'timestamp' : timestamp,				#UNIX timestamp for data data was collected
+			'daily_profit' : profitibilities[i],	#Profitibility calculated in USD
+    		'hash_rate' : hashrates[i],				#Hash rate for the given currency
+    		'exchange_rate' : exchange_rates[i],	#Exchange rate for the given currency in USD
+    		'block_reward' : block_rewards[i],		#Block reward for the given currency
+    		'difficulty' : difficulties[i],			#Difficulty for the given currency
+		}
+	)
+	print 'Inserted document with ID: ' + str(result.inserted_id) + ' into DB:miner_io Collection: ' + i
 
-for x in range(len(inputs)):
-	metrics[inputs[x]] = float(outputs[x])
+while True:
+	print ''
 
-ranked = (sorted(metrics.items(), key=lambda x: x[1]))
-ranked.reverse()
+	outputs = Parallel(n_jobs=multiprocessing.cpu_count())(delayed(estimate)(i) for i in inputs)
+	timestamp = int(time.time())
+	print(timestamp)
+	for x in range(len(inputs)):
+		metrics[inputs[x]] = float(outputs[x])
+	ranked = (sorted(metrics.items(), key=lambda x: x[1]))
+	ranked.reverse()
 
-print('')
-print(ranked)
+	print ''
+
+	profitibilities = dict(ranked)
+	for i in inputs:
+		print "Profitibility of " + i + " is $" + str(profitibilities[i])
+		commitData(i)
+
+	#Need some sort of function that broadcasts the coin to mine
+
+	time.sleep(1800)	#Sleep for 30 minutes
