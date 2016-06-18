@@ -54,7 +54,18 @@ apikeys = ['b87f63f1bf954b1095307e325626535e',
 
 def estimate(i):
 	if (apiCounters[i] % 5) == 0:
-		apiCounters[i] -= 5
+		if i == 'QTL' and apiCounters[i] != 0:
+			apiCounters[i] -= 5
+		elif i == 'FRK' and apiCounters[i] != 5:
+			apiCounters[i] -= 5
+		elif i == 'BTC' and apiCounters[i] != 10:
+			apiCounters[i] -= 5
+		elif i == 'GAME' and apiCounters[i] != 15:
+			apiCounters[i] -= 5
+		elif i == 'DGB' and apiCounters[i] != 20:
+			apiCounters[i] -= 5
+		elif i == 'LTC' and apiCounters[i] != 25:
+			apiCounters[i] -= 5
 
 	apikey = apikeys[apiCounters[i]]
 	apiCounters[i] += 1
