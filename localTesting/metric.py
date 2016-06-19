@@ -7,10 +7,14 @@ from joblib import Parallel, delayed
 import multiprocessing
 import time
 
-inputs = ['QTL', 'FRK', 'BTC', 'GAME', 'DGB', 'LTC']
+inputs = ['DGB', 'GLD', 'CNC', 'NVC', 'GAME', 'PPC', 'BTC', 'ZET', 'MZC', 'TEK']
+
+inputs_scrypt = ['DGB', 'GLD', 'CNC', 'NVC', 'GAME']
+inputs_sha = ['PPC', 'BTC', 'ZET', 'MZC', 'TEK']
+
 metrics = dict.fromkeys(inputs, 0)
 
-hashrates = {'QTL' : 100, 'FRK' : 100, 'BTC' : 100, 'GAME' : 100, 'DGB' : 100, 'LTC' : 100}
+hashrates = {'DGB' : 100, 'GLD' : 100, 'CNC' : 100, 'NVC' : 100, 'GAME' : 100, 'PPC' : 100, 'BTC' : 100, 'ZET' : 100, 'MZC' : 100, 'TEK' : 100}
 
 apikey = '6c727839f13346b0b9a453e7a9780a53'
 
@@ -37,5 +41,11 @@ ranked.reverse()
 print ''
 
 profitibilities = dict(ranked)
-for i in inputs:
+
+print "***SCRYPT CURRENCIES***"
+for i in inputs_scrypt:
+	print "Profitibility of " + i + " is $" + str(profitibilities[i])
+
+print "***SHA CURRENCIES***"
+for i in inputs_sha:
 	print "Profitibility of " + i + " is $" + str(profitibilities[i])
