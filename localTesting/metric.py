@@ -12,7 +12,7 @@ metrics = dict.fromkeys(inputs, 0)
 
 hashrates = {'QTL' : 100, 'FRK' : 100, 'BTC' : 100, 'GAME' : 100, 'DGB' : 100, 'LTC' : 100}
 
-apikey = '6cf5c078f96743c1b07578e9d8866472'
+apikey = '6c727839f13346b0b9a453e7a9780a53'
 
 def estimate(i):
 	devhash = hashrates[i]
