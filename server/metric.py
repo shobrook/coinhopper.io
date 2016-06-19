@@ -103,7 +103,6 @@ while True:
 	for x in range(len(inputs)):
 		metrics[inputs[x]] = float(outputs[x])
 	ranked = (sorted(metrics.items(), key=lambda x: x[1]))
-	ranked.reverse()
 
 	print ''
 
