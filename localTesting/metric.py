@@ -1,5 +1,3 @@
-# expcoin = 86400 * [devhash / (4294.97 * (tlambda * nethash))] * (exrate * rlambda)
-
 from joblib import Parallel, delayed
 from pymongo import MongoClient
 import urllib2
@@ -8,18 +6,18 @@ import multiprocessing
 import time
 import math
 
-inputs = ['DGB', 'GLD', 'CNC', 'NVC', 'GAME', 'PPC', 'BTC', 'ZET', 'MZC', 'TEK']
+############################GLOBALS############################
+apikey = '2ce8020aa22a4fc78c681271d1772bdd'
+hashrates = {'DGB' : 100, 'GLD' : 100, 'CNC' : 100, 'NVC' : 100, 'GAME' : 100, 'PPC' : 100, 'BTC' : 100, 'ZET' : 100, 'MZC' : 100, 'TEK' : 100}
 
+inputs = ['DGB', 'GLD', 'CNC', 'NVC', 'GAME', 'PPC', 'BTC', 'ZET', 'MZC', 'TEK']
 inputs_scrypt = ['DGB', 'GLD', 'CNC', 'NVC', 'GAME']
 inputs_sha = ['PPC', 'BTC', 'ZET', 'MZC', 'TEK']
 
 metrics = dict.fromkeys(inputs, 0)
 volatilities = dict.fromkeys(inputs_scrypt, 0)
 
-hashrates = {'DGB' : 100, 'GLD' : 100, 'CNC' : 100, 'NVC' : 100, 'GAME' : 100, 'PPC' : 100, 'BTC' : 100, 'ZET' : 100, 'MZC' : 100, 'TEK' : 100}
-
-apikey = 'b416fadbb64a4a3eb51a2ec5db49c1da'
-
+###########################FUNCTIONS###########################
 def estimate(i):
 	devhash = hashrates[i]
 	print 'Calculating expected daily profit (in USD) for... ' + i
@@ -42,7 +40,9 @@ def variance(tuples):
 	return [(x - avg)**2 for x in perc]
 
 def calcUncert(scrypt):
-	for document in cursors[scrypt]:
+	client = MongoClient("ec2-54-191-245-35.us-west-2.compute.amazonaws.com")
+	db = client.miner_io
+	for document in db[scrypt].find().skip(db[scrypt].count() - 2):
 		expcoin_historical.append(document.get('daily_profit'))
 	expcoin_historical.reverse()
 	print('Calculating expected profit volatility for... ' + scrypt)
@@ -51,6 +51,7 @@ def calcUncert(scrypt):
 	uncertainty = round((expcoin_historical[0] * volatility), 2)
 	return uncertainty
 
+##############################MAIN#############################
 print ''
 
 outputs = Parallel(n_jobs=multiprocessing.cpu_count())(delayed(estimate)(i) for i in inputs)
@@ -61,10 +62,7 @@ for x in range(len(inputs)):
 ranked_profit = (sorted(metrics.items(), key=lambda x: x[1]))
 ranked_profit.reverse()
 
-client = MongoClient("ec2-54-191-245-35.us-west-2.compute.amazonaws.com")
-db = client.miner_io
 expcoin_historical = []
-cursors = {'DGB': db.DGB.find().skip(db.DGB.count() - 2), 'GLD': db.GLD.find().skip(db.GLD.count() - 2), 'CNC': db.CNC.find().skip(db.CNC.count() - 2), 'NVC': db.NVC.find().skip(db.NVC.count() - 2), 'GAME': db.GAME.find().skip(db.GAME.count() - 2)}
 
 outputs_adj = Parallel(n_jobs=multiprocessing.cpu_count())(delayed(calcUncert)(scrypt) for scrypt in inputs_scrypt)
 
