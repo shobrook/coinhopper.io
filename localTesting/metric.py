@@ -1,5 +1,3 @@
-# expcoin = 86400 * [devhash / (4294.97 * (tlambda * nethash))] * (exrate * rlambda)
-
 from joblib import Parallel, delayed
 from pymongo import MongoClient
 import urllib2
@@ -8,18 +6,18 @@ import multiprocessing
 import time
 import math
 
-inputs = ['DGB', 'GLD', 'CNC', 'NVC', 'GAME', 'PPC', 'BTC', 'ZET', 'MZC', 'TEK']
+############################GLOBALS############################
+apikey = 'b3111ba36e224b56aaf5edf567b2d3d3'
+hashrates = {'DGB' : 100, 'GLD' : 100, 'CNC' : 100, 'NVC' : 100, 'GAME' : 100, 'PPC' : 100, 'BTC' : 100, 'ZET' : 100, 'MZC' : 100, 'TEK' : 100}
 
+inputs = ['DGB', 'GLD', 'CNC', 'NVC', 'GAME', 'PPC', 'BTC', 'ZET', 'MZC', 'TEK']
 inputs_scrypt = ['DGB', 'GLD', 'CNC', 'NVC', 'GAME']
 inputs_sha = ['PPC', 'BTC', 'ZET', 'MZC', 'TEK']
 
 metrics = dict.fromkeys(inputs, 0)
 volatilities = dict.fromkeys(inputs_scrypt, 0)
 
-hashrates = {'DGB' : 100, 'GLD' : 100, 'CNC' : 100, 'NVC' : 100, 'GAME' : 100, 'PPC' : 100, 'BTC' : 100, 'ZET' : 100, 'MZC' : 100, 'TEK' : 100}
-
-apikey = 'b416fadbb64a4a3eb51a2ec5db49c1da'
-
+###########################FUNCTIONS###########################
 def estimate(i):
 	devhash = hashrates[i]
 	print 'Calculating expected daily profit (in USD) for... ' + i
@@ -27,6 +25,7 @@ def estimate(i):
 	# diff = [tlambda * nethash] / 4294.97 --> Scaled to 1 MH/sec
 	diff = (simplejson.load(urllib2.urlopen('http://www.coinwarz.com/v1/api/coininformation/?apikey=' + apikey + '&cointag=' + i))).get('Data').get('Difficulty')
 	exrate = float((simplejson.load(urllib2.urlopen('http://www.cryptonator.com/api/ticker/' + i + '-usd'))).get('ticker').get('price'))
+	# takes [4294.97 * diff] hashes to solve a block
 	expcoin = round((86400*(devhash/(4294.97*diff))*(exrate*rlambda)), 2)
 	return expcoin
 
@@ -34,6 +33,7 @@ def average(x):
 	return sum(x) / len(x)
 
 def delta(tuples):
+	# percent change over a period, u_t = ln(P_t / P_t-1) for time t
 	return [(v / tuples[abs(i - 1)]) - 1 for i, v in enumerate(tuples)]
 
 def variance(tuples):
@@ -42,29 +42,32 @@ def variance(tuples):
 	return [(x - avg)**2 for x in perc]
 
 def calcUncert(scrypt):
-	for document in cursors[scrypt]:
+	client = MongoClient("ec2-54-191-245-35.us-west-2.compute.amazonaws.com")
+	db = client.miner_io
+	# historical data needs to be tested across time frames to determine the optimal period
+	for document in db[scrypt].find().skip(db[scrypt].count() - 2):
 		expcoin_historical.append(document.get('daily_profit'))
 	expcoin_historical.reverse()
 	print('Calculating expected profit volatility for... ' + scrypt)
 	var = variance(expcoin_historical)
 	volatility = math.sqrt(average(var))
-	uncertainty = round((expcoin_historical[0] * volatility), 2)
+	uncertainty = round((expcoin_historical[0] * volatility), 2) 
 	return uncertainty
 
+##############################MAIN#############################
 print ''
 
-outputs = Parallel(n_jobs=multiprocessing.cpu_count())(delayed(estimate)(i) for i in inputs)
 timestamp = int(time.time())
+outputs = Parallel(n_jobs=multiprocessing.cpu_count())(delayed(estimate)(i) for i in inputs)
 
 for x in range(len(inputs)):
 	metrics[inputs[x]] = float(outputs[x])
 ranked_profit = (sorted(metrics.items(), key=lambda x: x[1]))
 ranked_profit.reverse()
 
-client = MongoClient("ec2-54-191-245-35.us-west-2.compute.amazonaws.com")
-db = client.miner_io
 expcoin_historical = []
-cursors = {'DGB': db.DGB.find().skip(db.DGB.count() - 2), 'GLD': db.GLD.find().skip(db.GLD.count() - 2), 'CNC': db.CNC.find().skip(db.CNC.count() - 2), 'NVC': db.NVC.find().skip(db.NVC.count() - 2), 'GAME': db.GAME.find().skip(db.GAME.count() - 2)}
+
+print ''
 
 outputs_adj = Parallel(n_jobs=multiprocessing.cpu_count())(delayed(calcUncert)(scrypt) for scrypt in inputs_scrypt)
 
@@ -86,4 +89,4 @@ print ''
 print "***SCRYPT CURRENCIES***"
 for x in range(len(ranked_profit)):
 	if str(ranked_profit[x][0]) in inputs_scrypt:
-		print "Profitability of " + str(ranked_profit[x][0]) + " is $" + str(ranked_profit[x][1]) + " +/- " + str(ranked_uncert[x][1])
+		print "Profitability of " + str(ranked_profit[x][0]) + " is $" + str(ranked_profit[x][1]) + " +/- " + str(ranked_uncert[x][1]) # attributed tolerance to each expcoin output (scrypt)
