@@ -1,26 +1,28 @@
-# Data pipelines need to be replaced (no rate limits), a more accurate exchange rate needs to be calculated (averaged across 
-# exchanges or across open bids), and determining a time frame for updating exchange rate (to account for changes in volatility)
-# expcoin = 86400 * [devhash / (4294.97 * (tlambda * nethash))] * (exrate * rlambda)
-
-import urllib2, simplejson
 from joblib import Parallel, delayed
+from pymongo import MongoClient
+import urllib2
+import simplejson
 import multiprocessing
 import time
-from pymongo import MongoClient
+import math
+import timeit
 
 client = MongoClient()
 db = client.miner_io
 
+############################GLOBALS############################
 inputs = ['DGB', 'GLD', 'CNC', 'NVC', 'GAME', 'PPC', 'BTC', 'ZET', 'MZC', 'TEK']
-
 inputs_scrypt = ['DGB', 'GLD', 'CNC', 'NVC', 'GAME']
 inputs_sha = ['PPC', 'BTC', 'ZET', 'MZC', 'TEK']
-metrics = dict.fromkeys(inputs, 0)
+expcoin_historical = []
 
 hashrates = {'DGB' : 100, 'GLD' : 100, 'CNC' : 100, 'NVC' : 100, 'GAME' : 100, 'PPC' : 100, 'BTC' : 100, 'ZET' : 100, 'MZC' : 100, 'TEK' : 100}
-exchange_rates = {}
-block_rewards = {}
-difficulties = {}
+exchange_rates_q = multiprocessing.Queue()
+block_rewards_q = multiprocessing.Queue()
+difficulties_q = multiprocessing.Queue()
+
+metrics = dict.fromkeys(inputs, 0)
+volatilities = dict.fromkeys(inputs_scrypt, 0)
 
 apiCounters = {'DGB' : 0, 'GLD' : 5, 'CNC' : 10, 'NVC' : 15, 'GAME' : 20, 'PPC' : 25, 'BTC' : 30, 'ZET' : 35, 'MZC' : 40, 'TEK' : 45}
 apikeys = ['520c4970e88949ba81e9db583711d439',
@@ -76,8 +78,7 @@ apikeys = ['520c4970e88949ba81e9db583711d439',
 	'03f8bb8be9a94a3888482077f2fb8b62',
 	'cba7de5a43cf43aea5e69e531dc9c5c4',]
 
-
-
+###########################FUNCTIONS###########################
 def estimate(i):
 	if (apiCounters[i] % 5) == 0:
 		if i == 'DGB' and apiCounters[i] != 0:
@@ -100,7 +101,6 @@ def estimate(i):
 			apiCounters[i] -= 5
 		elif i == 'TEK' and apiCounters[i] != 45:
 			apiCounters[i] -= 5
-
 	apikey = apikeys[apiCounters[i]]
 	apiCounters[i] += 1
 	devhash = hashrates[i]
@@ -110,12 +110,49 @@ def estimate(i):
 	diff = (simplejson.load(urllib2.urlopen('http://www.coinwarz.com/v1/api/coininformation/?apikey=' + apikey + '&cointag=' + i))).get('Data').get('Difficulty')
 	exrate = float((simplejson.load(urllib2.urlopen('http://www.cryptonator.com/api/ticker/' + i + '-usd'))).get('ticker').get('price'))
 	expcoin = round((86400*(devhash/(4294.97*diff))*(exrate*rlambda)), 2)
-	difficulties[i] = diff
-	exchange_rates[i] = exrate
-	block_rewards[i] = rlambda
+	difficulties_q.put([i, diff])
+	exchange_rates_q.put([i, exrate])
+	block_rewards_q.put([i, rlambda])
 	return expcoin
 
-def commitData(i):
+def average(x):
+	return sum(x) / len(x)
+
+def delta(tuples):
+	return [(v / tuples[abs(i - 1)]) - 1 for i, v in enumerate(tuples)]
+
+def variance(tuples):
+	perc = delta(tuples)
+	avg = average(perc)
+	return [(x - avg)**2 for x in perc]
+
+def calcUncert(scrypt):
+	client = MongoClient("ec2-54-191-245-35.us-west-2.compute.amazonaws.com")
+	db = client.miner_io
+	for document in db[scrypt].find().skip(db[scrypt].count() - 2):
+		expcoin_historical.append(document.get('daily_profit'))
+	expcoin_historical.reverse()
+	print('Calculating expected profit volatility for... ' + scrypt)
+	var = variance(expcoin_historical)
+	volatility = math.sqrt(average(var))
+	uncertainty = round((expcoin_historical[0] * volatility), 2)
+	return uncertainty
+
+def commitDataScrypt(i):
+	result = db[i].insert_one(
+		{
+			'timestamp' : timestamp,				#UNIX timestamp for data data was collected
+			'daily_profit' : profitibilities[i],	#Profitibility calculated in USD
+    		'hash_rate' : hashrates[i],				#Hash rate for the given currency
+    		'exchange_rate' : exchange_rates[i],	#Exchange rate for the given currency in USD
+    		'block_reward' : block_rewards[i],		#Block reward for the given currency
+    		'difficulty' : difficulties[i],			#Difficulty for the given currency
+    		'uncertainty' : uncertainties[i]		#Uncertainty for the given currency
+		}
+	)
+	print 'Inserted document with ID: ' + str(result.inserted_id) + ' into DB:miner_io Collection: ' + i
+
+def commitDataSHA(i):
 	result = db[i].insert_one(
 		{
 			'timestamp' : timestamp,				#UNIX timestamp for data data was collected
@@ -128,29 +165,45 @@ def commitData(i):
 	)
 	print 'Inserted document with ID: ' + str(result.inserted_id) + ' into DB:miner_io Collection: ' + i
 
+##############################MAIN#############################
 while True:
-	print ''
+	start = timeit.default_timer()
+	timestamp = int(time.time())
 
 	outputs = Parallel(n_jobs=multiprocessing.cpu_count())(delayed(estimate)(i) for i in inputs)
-	timestamp = int(time.time())
-	print(timestamp)
 	for x in range(len(inputs)):
 		metrics[inputs[x]] = float(outputs[x])
-	ranked = (sorted(metrics.items(), key=lambda x: x[1]))
+	profitibilities = dict(sorted(metrics.items(), key=lambda x: x[1]))
 
-	print ''
+	outputs_adj = Parallel(n_jobs=multiprocessing.cpu_count())(delayed(calcUncert)(scrypt) for scrypt in inputs_scrypt)
+	for x in range(len(inputs_scrypt)):
+		volatilities[inputs_scrypt[x]] = float(outputs_adj[x])
+	uncertainties = dict(sorted(volatilities.items(), key=lambda x: x[1]))
 
-	profitibilities = dict(ranked)
-	print "***SCRYPT CURRENCIES***"
+	exchange_rates = []
+	block_rewards = []
+	difficulties = []
+
+	while not exchange_rates_q.empty():
+		exchange_rates.append(exchange_rates_q.get())
+		block_rewards.append(block_rewards_q.get())
+		difficulties.append(difficulties_q.get())
+	exchange_rates = dict(exchange_rates)
+	block_rewards = dict(block_rewards)
+	difficulties = dict(difficulties)
+
+	client = MongoClient("ec2-54-191-245-35.us-west-2.compute.amazonaws.com")
+	db = client.miner_io
+
+	print "\n***SCRYPT CURRENCIES***"
 	for i in inputs_scrypt:
-		print "Profitibility of " + i + " is $" + str(profitibilities[i])
-		commitData(i)
+		print "Profitibility of " + i + " is $" + str(profitibilities[i]) + " +/-" + str(uncertainties[i])
+		commitDataScrypt(i)
 
-	print "***SHA CURRENCIES***"
+	print "\n***SHA CURRENCIES***"
 	for i in inputs_sha:
 		print "Profitibility of " + i + " is $" + str(profitibilities[i])
-		commitData(i)
+		commitDataSHA(i)
 
-	#Need some sort of function that broadcasts the coin to mine
-
-	time.sleep(1800)	#Sleep for 30 minutes
+	elapsed = timeit.default_timer() - start
+	time.sleep(1800-elapsed)
