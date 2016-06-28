@@ -18,16 +18,16 @@ def index():
     return render_template("index.html")
 
 @app.route("/coinhopper.io/app")
-def donorschoose_projects():
+def coinhopper_data():
     connection = MongoClient(MONGODB_HOST, MONGODB_PORT)
     collection = connection[DBS_NAME][COLLECTION_NAME]
-    projects = collection.find(projection=FIELDS)
-    json_projects = []
-    for project in projects:
-        json_projects.append(project)
-    json_projects = json.dumps(json_projects, default=json_util.default)
+    data = collection.find(projection=FIELDS)
+    json_data = []
+    for x in data:
+        json_data.append(x)
+    json_data = json.dumps(json_data, default=json_util.default)
     connection.close()
-    return json_projects
+    return json_data
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0',port=5000,debug=True)
