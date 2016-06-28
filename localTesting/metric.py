@@ -7,7 +7,7 @@ import time
 import math
 
 ############################GLOBALS############################
-apikey = 'b3111ba36e224b56aaf5edf567b2d3d3'
+apikey = '880e8b6079c845b784154aee2a80685d'
 hashrates = {'DGB' : 100, 'GLD' : 100, 'CNC' : 100, 'NVC' : 100, 'GAME' : 100, 'PPC' : 100, 'BTC' : 100, 'ZET' : 100, 'MZC' : 100, 'TEK' : 100}
 
 inputs = ['DGB', 'GLD', 'CNC', 'NVC', 'GAME', 'PPC', 'BTC', 'ZET', 'MZC', 'TEK']
@@ -45,8 +45,7 @@ def variance(tuples):
 def calcUncert(scrypt):
 	client = MongoClient("ec2-54-191-245-35.us-west-2.compute.amazonaws.com")
 	db = client.miner_io
-	# historical data needs to be tested across time frames to determine the optimal period
-	for document in db[scrypt].find().skip(db[scrypt].count() - 2):
+	for document in db[scrypt].find().skip(db[scrypt].count() - 48):
 		expcoin_historical.append(document.get('daily_profit'))
 	expcoin_historical.reverse()
 	print('Calculating expected profit volatility for... ' + scrypt)
