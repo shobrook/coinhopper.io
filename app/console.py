@@ -83,17 +83,32 @@ class attributes:
 
 ##############################MAIN#############################
 
-#"\033[0;41m" + str(text) + "\033[0;m"
+if len(str(getRate(args.coin))) > len(str(getDifficulty(args.coin))):
+	if len(str(getRate(args.coin))) > len(str(getReward(args.coin))):
+		length = len(str(getRate(args.coin))) + len('Exchange Rate: $')
+	else:
+		length = len(str(getReward(args.coin))) + len('Exchange Rate: $')
+else:
+	if len(str(getDifficulty(args.coin))) > len(str(getReward(args.coin))):
+		length = len(str(getDifficulty(args.coin))) + len('Exchange Rate: $')
+	else:
+		length = len(str(getReward(args.coin))) + len('Exchange Rate: $')
 
 print('')
 print(colored(currencies[args.coin] + ' (' + args.coin + ') Overview', 'white', attrs=['bold']))
 print('')
 print((colored('Expected Profitability:', 'red', attrs=['underline'])) + ' $' + str(getProfit(args.coin)))
 print('')
-print((colored('\033[42mExchange Rate:', 'grey', attrs=['underline'])) + '\033[42m $' + str(getRate(args.coin)) + '\033[m')
-print((colored('\033[42mDifficulty:', 'grey', attrs=['underline'])) + '\033[42m ' + str(getDifficulty(args.coin)) + '\033[m')
-print((colored('\033[42mBlock Reward:', 'grey', attrs=['underline'])) + '\033[42m ' + str(getReward(args.coin)) + '\033[m')
+print((colored('\033[42mExchange Rate:', 'grey', attrs=['underline'])) + '\033[42m $' + str(getRate(args.coin)) + (length - len('Exchange Rate: $' + str(getRate(args.coin))))*'\033[42m ' + '\033[m')
+print((colored('\033[42mDifficulty:', 'grey', attrs=['underline'])) + '\033[42m ' + str(getDifficulty(args.coin)) + (length - len('Difficulty: ' + str(getDifficulty(args.coin))))*'\033[42m ' + '\033[m')
+print((colored('\033[42mBlock Reward:', 'grey', attrs=['underline'])) + '\033[42m ' + str(getReward(args.coin)) + (length - len('Block Reward: ' + str(getReward(args.coin))))*'\033[42m ' + '\033[m')
 print('')
+#print((colored('Ranking (Scrypt):', 'red', attrs=['underline']) + ' [')
+
+# [BTC.......NVC..GAME....PPC...............TEK] (current one highlighted)
+# ************
+# Your Hash Rate:
+# Your Earnings: 
 
 
 
