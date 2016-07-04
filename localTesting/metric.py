@@ -7,7 +7,7 @@ import time
 import math
 
 ############################GLOBALS############################
-apikey = '880e8b6079c845b784154aee2a80685d'
+apikey = '526efde4952e4d71a68f3a989cb17dae'
 hashrates = {'DGB' : 100, 'GLD' : 100, 'CNC' : 100, 'NVC' : 100, 'GAME' : 100, 'PPC' : 100, 'BTC' : 100, 'ZET' : 100, 'MZC' : 100, 'TEK' : 100}
 
 inputs = ['DGB', 'GLD', 'CNC', 'NVC', 'GAME', 'PPC', 'BTC', 'ZET', 'MZC', 'TEK']
