@@ -22,9 +22,9 @@ FIELDS = {'_id': False, 'block_reward': True, 'daily_profit': True, 'difficulty'
 
 ##############################FUNCTIONS#############################
 
-def getRecords():
+def getRecords(coin):
 	connection = MongoClient(MONGODB_HOST, MONGODB_PORT)
-	collection = connection[DBS_NAME][COLLECTION_NAME]
+	collection = connection[DBS_NAME][coin]
 	data = collection.find(projection=FIELDS)
 	json_data = []
 	for x in data:
@@ -34,38 +34,27 @@ def getRecords():
 	return json_data[0]
 
 def getProfit():
-	return getRecords().get('daily_profit')
+	return getRecords(COLLECTION_NAME).get('daily_profit')
 
 def getUncertainty():
-	return getRecords().get('uncertainty')
+	return getRecords(COLLECTION_NAME).get('uncertainty')
 
 def getRate():
-	return getRecords().get('exchange_rate')
+	return getRecords(COLLECTION_NAME).get('exchange_rate')
 
 def getDifficulty():
-	return getRecords().get('difficulty')
+	return getRecords(COLLECTION_NAME).get('difficulty')
 
 def getReward():
-	return getRecords().get('block_reward')
+	return getRecords(COLLECTION_NAME).get('block_reward')
 
-#def getRanking(coin):
-
-
-def getRanking(coin):
-	connection = MongoClient(MONGODB_HOST, MONGODB_PORT)
-	for x in currencies_scrypt:
-		data.append(connection[DBS_NAME][currencies_scrypt].find(projection=FIELDS))
-	for record in data:
-		json_data.append
-
-	collection = connection[DBS_NAME][COLLECTION_NAME]
-	data = collection.find(projection=FIELDS)
-	json_data = []
-	for x in data:
-		json_data.append(x)
-	connection.close()
-	json_data.reverse()
-	return json_data[0].get('block_reward')
+def getRanking():
+	json_data = dict.fromkeys(currencies_scrypt, 0)
+	ranked = []
+	for coins in currencies_scrypt:
+		json_data[coins] = getRecords(coins).get('daily_profit')
+	ranked = sorted(json_data, key=json_data.__getitem__, reverse=True)
+	return ranked
 
 ##############################CLASSES#############################
 
@@ -107,10 +96,10 @@ print((colored('\033[42mExchange Rate:', 'grey', attrs=['underline'])) + '\033[4
 print((colored('\033[42mDifficulty:', 'grey', attrs=['underline'])) + '\033[42m ' + str(getDifficulty()) + (length - len('Difficulty: ' + str(getDifficulty())))*'\033[42m ' + '\033[m')
 print((colored('\033[42mBlock Reward:', 'grey', attrs=['underline'])) + '\033[42m ' + str(getReward()) + (length - len('Block Reward: ' + str(getReward())))*'\033[42m ' + '\033[m')
 print('')
-print((colored('Ranking (Scrypt):', 'red', attrs=['underline']) + ' []')) #[BTC.......NVC..GAME....PPC...............TEK] (current one highlighted)
+print((colored('Ranking (Scrypt):', 'red', attrs=['underline']) + ' ' + str(getRanking()))) #[BTC.......NVC..GAME....PPC...............TEK] (current one highlighted)
 print('')
 print(length * (attributes.BOLD + '*' + attributes.END))
 print('')
-#print((colored('\033[46mYour Hash Rate:', 'grey', attrs=['underline'])) + '\033[46m 100 MH/s' + (length - len('Your Hash Rate: 100 MH/s'))*'\033[46m ' + '\033[m')
-#print((colored('\033[46mYour Earnings:', 'grey', attrs=['underline'])) + '\033[46m $24.91' + (length - len('Your Earnings: $24.91'))*'\033[46m ' + '\033[m')
+print((colored('\033[46mYour Hash Rate:', 'grey', attrs=['underline'])) + '\033[46m 100 MH/s' + (length - len('Your Hash Rate: 100 MH/s'))*'\033[46m ' + '\033[m')
+print((colored('\033[46mYour Earnings:', 'grey', attrs=['underline'])) + '\033[46m $24.91' + (length - len('Your Earnings: $24.91'))*'\033[46m ' + '\033[m')
 print('')
