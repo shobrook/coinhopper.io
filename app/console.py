@@ -54,6 +54,9 @@ def getRanking():
 	for coins in currencies_scrypt:
 		json_data[coins] = getRecords(coins).get('daily_profit')
 	ranked = sorted(json_data, key=json_data.__getitem__, reverse=True)
+	for index in range(len(ranked)):
+		if ranked[index] == str(args.coin):
+			ranked[index] = '\033[41m' + args.coin + '\033[m' # needs to highlight the coin in question
 	return ranked
 
 ##############################CLASSES#############################
@@ -84,9 +87,6 @@ else:
 	else:
 		length = len(str(getReward())) + len('Exchange Rate: $')
 
-#if length < len('Expected Profitability: $' + str(getProfit()) + ' +/- ' + str(getUncertainty())):
-#	length = len('Expected Profitability: $' + str(getProfit()) + ' +/- ' + str(getUncertainty()))
-
 print('')
 print(colored(currencies[args.coin] + ' (' + args.coin + ') Overview', 'white', attrs=['bold']))
 print('')
@@ -103,3 +103,23 @@ print('')
 print((colored('\033[46mYour Hash Rate:', 'grey', attrs=['underline'])) + '\033[46m 100 MH/s' + (length - len('Your Hash Rate: 100 MH/s'))*'\033[46m ' + '\033[m')
 print((colored('\033[46mYour Earnings:', 'grey', attrs=['underline'])) + '\033[46m $24.91' + (length - len('Your Earnings: $24.91'))*'\033[46m ' + '\033[m')
 print('')
+
+#Peercoin (PPC) Synopsis
+# 
+# * Fetching currency data: [PROGRESS]
+# * Calculating expected daily profit (in USD): [PROGRESS]
+# * Calculating profit volatility: [PROGRESS]
+# * Connecting to your mining rig: [PROGRESS]
+#
+#Expected Profitability: $19.47 +/- 0.85
+#
+#Exchange Rate: $0.92314
+#Difficulty: 9413.13412
+#Block Reward: 25
+#
+#Ranking (Scrypt): [GLD......PPC..GAME..............CNC....NVC]
+#
+#*************************
+#
+#Your Hash Rate: 100MH/s
+#Your Earnings: $24.91
