@@ -1,6 +1,6 @@
 from joblib import Parallel, delayed
 from pymongo import MongoClient
-from os import getpid
+import os
 import urllib2
 import simplejson
 import multiprocessing
