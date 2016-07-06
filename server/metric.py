@@ -167,7 +167,7 @@ def commitDataSHA(i):
 	print 'Inserted document with ID: ' + str(result.inserted_id) + ' into DB:miner_io Collection: ' + i
 
 ##############################MAIN#############################
-os.system('nohup python notify.py '+str(getpid())
+os.system('nohup python notify.py '+str(getpid()))
 
 while True:
 	start = timeit.default_timer()
