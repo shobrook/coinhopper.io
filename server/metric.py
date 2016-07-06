@@ -1,5 +1,6 @@
 from joblib import Parallel, delayed
 from pymongo import MongoClient
+from os import getpid
 import urllib2
 import simplejson
 import multiprocessing
@@ -166,6 +167,8 @@ def commitDataSHA(i):
 	print 'Inserted document with ID: ' + str(result.inserted_id) + ' into DB:miner_io Collection: ' + i
 
 ##############################MAIN#############################
+os.system('nohup python notify.py '+str(getpid())
+
 while True:
 	start = timeit.default_timer()
 	timestamp = int(time.time())
