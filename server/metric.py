@@ -1,7 +1,6 @@
 from joblib import Parallel, delayed
 from pymongo import MongoClient
 from base64 import b64decode
-from time import sleep
 from sys import argv
 import smtplib
 import datetime
