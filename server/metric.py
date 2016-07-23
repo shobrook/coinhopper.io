@@ -167,48 +167,48 @@ def commitDataSHA(i):
 
 ##############################MAIN#############################
 while True:
-	try:
-		start = timeit.default_timer()
-		timestamp = int(time.time())
+	#try:
+	start = timeit.default_timer()
+	timestamp = int(time.time())
 
-		outputs = Parallel(n_jobs=multiprocessing.cpu_count())(delayed(estimate)(i) for i in inputs)
-		for x in range(len(inputs)):
-			metrics[inputs[x]] = float(outputs[x])
-		profitibilities = dict(sorted(metrics.items(), key=lambda x: x[1]))
+	outputs = Parallel(n_jobs=multiprocessing.cpu_count())(delayed(estimate)(i) for i in inputs)
+	for x in range(len(inputs)):
+		metrics[inputs[x]] = float(outputs[x])
+	profitibilities = dict(sorted(metrics.items(), key=lambda x: x[1]))
 
-		outputs_adj = Parallel(n_jobs=multiprocessing.cpu_count())(delayed(calcUncert)(scrypt) for scrypt in inputs_scrypt)
-		for x in range(len(inputs_scrypt)):
-			volatilities[inputs_scrypt[x]] = float(outputs_adj[x])
-		uncertainties = dict(sorted(volatilities.items(), key=lambda x: x[1]))
+	outputs_adj = Parallel(n_jobs=multiprocessing.cpu_count())(delayed(calcUncert)(scrypt) for scrypt in inputs_scrypt)
+	for x in range(len(inputs_scrypt)):
+		volatilities[inputs_scrypt[x]] = float(outputs_adj[x])
+	uncertainties = dict(sorted(volatilities.items(), key=lambda x: x[1]))
 
-		exchange_rates = []
-		block_rewards = []
-		difficulties = []
+	exchange_rates = []
+	block_rewards = []
+	difficulties = []
 
-		while not exchange_rates_q.empty():
-			exchange_rates.append(exchange_rates_q.get())
-			block_rewards.append(block_rewards_q.get())
-			difficulties.append(difficulties_q.get())
-		exchange_rates = dict(exchange_rates)
-		block_rewards = dict(block_rewards)
-		difficulties = dict(difficulties)
+	while not exchange_rates_q.empty():
+		exchange_rates.append(exchange_rates_q.get())
+		block_rewards.append(block_rewards_q.get())
+		difficulties.append(difficulties_q.get())
+	exchange_rates = dict(exchange_rates)
+	block_rewards = dict(block_rewards)
+	difficulties = dict(difficulties)
 
-		client = MongoClient()
-		db = client.coinhopper
+	client = MongoClient()
+	db = client.coinhopper
 
-		print "\n***SCRYPT CURRENCIES***"
-		for i in inputs_scrypt:
-			print "Profitibility of " + i + " is $" + str(profitibilities[i]) + " +/-" + str(uncertainties[i])
-			commitDataScrypt(i)
+	print "\n***SCRYPT CURRENCIES***"
+	for i in inputs_scrypt:
+		print "Profitibility of " + i + " is $" + str(profitibilities[i]) + " +/-" + str(uncertainties[i])
+		commitDataScrypt(i)
 
-		print "\n***SHA CURRENCIES***"
-		for i in inputs_sha:
-			print "Profitibility of " + i + " is $" + str(profitibilities[i])
-			commitDataSHA(i)
+	print "\n***SHA CURRENCIES***"
+	for i in inputs_sha:
+		print "Profitibility of " + i + " is $" + str(profitibilities[i])
+		commitDataSHA(i)
 
-		elapsed = timeit.default_timer() - start
-		time.sleep(1800-elapsed)
-
+	elapsed = timeit.default_timer() - start
+	time.sleep(1800-elapsed)
+"""
 	except KeyboardInterrupt:
 		quit()
 
@@ -224,3 +224,4 @@ while True:
 		server.sendmail(b64decode('Y29pbmhvcHBlci5pb0BnbWFpbC5jb20='), [b64decode('YmxvYnozMTVAZ21haWwuY29t'),b64decode('c2hvYnJvb2tqQGdtYWlsLmNvbQ==')], msg)
 
 		quit()
+		"""
