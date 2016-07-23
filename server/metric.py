@@ -12,9 +12,6 @@ import time
 import math
 import timeit
 
-client = MongoClient()
-db = client.miner_io
-
 ############################GLOBALS############################
 inputs = ['DGB', 'GLD', 'CNC', 'NVC', 'GAME', 'PPC', 'BTC', 'ZET', 'MZC', 'TEK']
 inputs_scrypt = ['DGB', 'GLD', 'CNC', 'NVC', 'GAME']
@@ -131,7 +128,7 @@ def variance(tuples):
 
 def calcUncert(scrypt):
 	client = MongoClient()
-	db = client.miner_io
+	db = client.coinhopper
 	for document in db[scrypt].find().skip(db[scrypt].count() - 2):
 		expcoin_historical.append(document.get('daily_profit'))
 	expcoin_historical.reverse()
@@ -153,7 +150,7 @@ def commitDataScrypt(i):
     		'uncertainty' : uncertainties[i]		#Uncertainty for the given currency
 		}
 	)
-	print 'Inserted document with ID: ' + str(result.inserted_id) + ' into DB:miner_io Collection: ' + i
+	print 'Inserted document with ID: ' + str(result.inserted_id) + ' into DB:coinhopper Collection: ' + i
 
 def commitDataSHA(i):
 	result = db[i].insert_one(
@@ -166,7 +163,7 @@ def commitDataSHA(i):
     		'difficulty' : difficulties[i],			#Difficulty for the given currency
 		}
 	)
-	print 'Inserted document with ID: ' + str(result.inserted_id) + ' into DB:miner_io Collection: ' + i
+	print 'Inserted document with ID: ' + str(result.inserted_id) + ' into DB:coinhopper Collection: ' + i
 
 ##############################MAIN#############################
 while True:
@@ -197,7 +194,7 @@ while True:
 	difficulties = dict(difficulties)
 
 	client = MongoClient()
-	db = client.miner_io
+	db = client.coinhopper
 
 	print "\n***SCRYPT CURRENCIES***"
 	for i in inputs_scrypt:
