@@ -130,7 +130,7 @@ def variance(tuples):
 	return [(x - avg)**2 for x in perc]
 
 def calcUncert(scrypt):
-	client = MongoClient("ec2-54-191-245-35.us-west-2.compute.amazonaws.com")
+	client = MongoClient()
 	db = client.miner_io
 	for document in db[scrypt].find().skip(db[scrypt].count() - 2):
 		expcoin_historical.append(document.get('daily_profit'))
@@ -196,7 +196,7 @@ while True:
 		block_rewards = dict(block_rewards)
 		difficulties = dict(difficulties)
 
-		client = MongoClient("ec2-54-191-245-35.us-west-2.compute.amazonaws.com")
+		client = MongoClient()
 		db = client.miner_io
 
 		print "\n***SCRYPT CURRENCIES***"
