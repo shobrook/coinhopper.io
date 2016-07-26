@@ -14,6 +14,7 @@ inputs = ['DGB', 'GLD', 'CNC', 'NVC', 'GAME', 'PPC', 'BTC', 'ZET', 'MZC', 'TEK']
 inputs_scrypt = ['DGB', 'GLD', 'CNC', 'NVC', 'GAME']
 inputs_sha = ['PPC', 'BTC', 'ZET', 'MZC', 'TEK']
 
+expcoin_historical = []
 metrics = dict.fromkeys(inputs, 0)
 volatilities = dict.fromkeys(inputs_scrypt, 0)
 
@@ -54,38 +55,39 @@ def calcUncert(scrypt):
 	return uncertainty
 
 ##############################MAIN#############################
+<<<<<<< HEAD
+=======
 print ''
 
+>>>>>>> master
 timestamp = int(time.time())
 outputs = Parallel(n_jobs=multiprocessing.cpu_count())(delayed(estimate)(i) for i in inputs)
 
+outputs = Parallel(n_jobs=multiprocessing.cpu_count())(delayed(estimate)(i) for i in inputs)
 for x in range(len(inputs)):
 	metrics[inputs[x]] = float(outputs[x])
 ranked_profit = (sorted(metrics.items(), key=lambda x: x[1]))
 ranked_profit.reverse()
 
+<<<<<<< HEAD
+=======
 expcoin_historical = []
 
 print ''
 
+>>>>>>> master
 outputs_adj = Parallel(n_jobs=multiprocessing.cpu_count())(delayed(calcUncert)(scrypt) for scrypt in inputs_scrypt)
-
 for x in range(len(inputs_scrypt)):
 	volatilities[inputs_scrypt[x]] = float(outputs_adj[x])
-
 ranked_uncert = (sorted(volatilities.items(), key=lambda x: x[1]))
 ranked_uncert.reverse()
 
-print ''
-
-print "***SHA-256 CURRENCIES***"
+print "\n***SHA-256 CURRENCIES***"
 for x in range(len(ranked_profit)):
 	if str(ranked_profit[x][0]) in inputs_sha:
 		print "Profitability of " + str(ranked_profit[x][0]) + " is $" + str(ranked_profit[x][1])
 
-print ''
-
-print "***SCRYPT CURRENCIES***"
+print "\n***SCRYPT CURRENCIES***"
 for x in range(len(ranked_profit)):
 	if str(ranked_profit[x][0]) in inputs_scrypt:
 		print "Profitability of " + str(ranked_profit[x][0]) + " is $" + str(ranked_profit[x][1]) + " +/- " + str(ranked_uncert[x][1]) # attributed tolerance to each expcoin output (scrypt)
