@@ -109,7 +109,7 @@ def estimate(i):
 	rlambda = (simplejson.load(urllib2.urlopen('http://www.coinwarz.com/v1/api/coininformation/?apikey=' + apikey + '&cointag=' + i))).get('Data').get('BlockReward')
 	diff = (simplejson.load(urllib2.urlopen('http://www.coinwarz.com/v1/api/coininformation/?apikey=' + apikey + '&cointag=' + i))).get('Data').get('Difficulty')
 	exrate = float((simplejson.load(urllib2.urlopen('http://www.cryptonator.com/api/ticker/' + i + '-usd'))).get('ticker').get('price'))
-	expcoin = round((86400*(devhash/(4294.97*diff))*(exrate*rlambda)), 2)
+	expcoin = round((86400*(devhash/(4294.97*diff))*(exrate*rlambda)), 6)
 	difficulties_q.put([i, diff])
 	exchange_rates_q.put([i, exrate])
 	block_rewards_q.put([i, rlambda])
@@ -135,7 +135,7 @@ def calcUncert(scrypt):
 	print('Calculating expected profit volatility for... ' + scrypt)
 	var = variance(expcoin_historical)
 	volatility = math.sqrt(average(var))
-	uncertainty = round((expcoin_historical[0] * volatility), 2)
+	uncertainty = round((expcoin_historical[0] * volatility), 6)
 	return uncertainty
 
 def commitDataScrypt(i):
